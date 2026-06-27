@@ -52,7 +52,12 @@ class CLIRunner:
             out_path = save_file(cleaned_df, args.output, fmt=args.output_format)
             print(f"  [saved] Cleaned data → {out_path}")
 
-        # Analysis
+        # Analysis — restore original binary target col so ROC-AUC gets proper labels
+        df_for_analysis = cleaned_df.copy().reset_index(drop=True)
+        if args.roc_auc and args.roc_auc in original_df.columns:
+            orig_labels = original_df[args.roc_auc].reset_index(drop=True)
+            df_for_analysis[args.roc_auc] = orig_labels
+
         analysis_opts = {
             "central_tendency": args.central_tendency,
             "dispersion": args.dispersion,
@@ -62,8 +67,9 @@ class CLIRunner:
             "normality": False,
             "roc_auc": args.roc_auc,
             "all_metrics": args.all_metrics,
+            "original_df": original_df,
         }
-        results = run_analysis(cleaned_df, analysis_opts)
+        results = run_analysis(df_for_analysis, analysis_opts)
 
         if results:
             print(f"\n── Analysis Results ───────────────────────────────")

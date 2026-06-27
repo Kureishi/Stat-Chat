@@ -68,19 +68,24 @@ def correlation_matrix(df: pd.DataFrame, columns: Optional[List[str]] = None) ->
 
 
 def roc_auc_analysis(df: pd.DataFrame, target_col: str,
-                     feature_cols: Optional[List[str]] = None) -> Dict[str, Any]:
-    """Compute ROC-AUC for each numeric feature vs a binary target column."""
-    from sklearn.metrics import roc_auc_score, roc_curve
-    from sklearn.preprocessing import label_binarize
+                     feature_cols: Optional[List[str]] = None,
+                     original_df: Optional[pd.DataFrame] = None) -> Dict[str, Any]:
+    """Compute ROC-AUC for each numeric feature vs a binary target column.
 
-    if target_col not in df.columns:
+    original_df: if provided, the target labels are taken from here (pre-normalization).
+    """
+    from sklearn.metrics import roc_auc_score, roc_curve
+
+    label_source = original_df if original_df is not None else df
+
+    if target_col not in label_source.columns:
         raise ValueError(f"Target column '{target_col}' not found in data.")
 
-    y = df[target_col].dropna()
-    unique_vals = y.unique()
+    y_check = label_source[target_col].dropna()
+    unique_vals = y_check.unique()
     if len(unique_vals) != 2:
         raise ValueError(
-            f"ROC-AUC requires a binary target. Column '{target_col}' has {len(unique_vals)} unique values."
+            f"ROC-AUC requires a binary target. Column '{target_col}' has {len(unique_vals)} unique values: {list(unique_vals)[:5]}"
         )
 
     numeric_cols = feature_cols or [
@@ -88,13 +93,23 @@ def roc_auc_analysis(df: pd.DataFrame, target_col: str,
     ]
 
     results = {}
+    # Try to get labels from the cleaned df itself first (if target wasn't normalized)
+    # Otherwise fall back to aligning by reset index
     for col in numeric_cols:
         try:
-            valid = df[[col, target_col]].dropna()
-            if len(valid) < 2:
+            if target_col in df.columns:
+                valid = df[[col, target_col]].dropna()
+                y_true = valid[target_col]
+                y_score = valid[col]
+            else:
+                min_len = min(len(df), len(label_source))
+                y_true = label_source[target_col].iloc[:min_len].reset_index(drop=True)
+                y_score = df[col].iloc[:min_len].reset_index(drop=True)
+                mask = y_true.notna() & y_score.notna()
+                y_true, y_score = y_true[mask], y_score[mask]
+
+            if len(y_true) < 2:
                 continue
-            y_true = valid[target_col]
-            y_score = valid[col]
             auc = roc_auc_score(y_true, y_score)
             fpr, tpr, thresholds = roc_curve(y_true, y_score)
             results[col] = {
@@ -157,8 +172,9 @@ def run_analysis(df: pd.DataFrame, opts: dict) -> Dict[str, Any]:
 
     if opts.get("roc_auc"):
         target = opts["roc_auc"]
+        original_df = opts.get("original_df")
         try:
-            results["roc_auc"] = roc_auc_analysis(df, target_col=target)
+            results["roc_auc"] = roc_auc_analysis(df, target_col=target, original_df=original_df)
         except ValueError as e:
             results["roc_auc"] = {"error": str(e)}
 

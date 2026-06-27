@@ -440,6 +440,13 @@ class DataLyzerApp:
 
             # Analysis
             roc_target = self.roc_target_var.get().strip() if self.v_roc_auc.get() else None
+
+            # Restore original (un-normalized) target column so ROC-AUC gets proper binary labels
+            df_for_analysis = df.copy().reset_index(drop=True)
+            if roc_target and roc_target in self.original_df.columns:
+                orig_labels = self.original_df[roc_target].reset_index(drop=True)
+                df_for_analysis[roc_target] = orig_labels
+
             analysis_opts = {
                 "central_tendency": self.v_central.get(),
                 "dispersion":       self.v_dispersion.get(),
@@ -449,8 +456,9 @@ class DataLyzerApp:
                 "correlation":      self.v_correlation.get(),
                 "roc_auc":          roc_target,
                 "all_metrics":      False,
+                "original_df":      self.original_df,
             }
-            results = run_analysis(df, analysis_opts)
+            results = run_analysis(df_for_analysis, analysis_opts)
             self.analysis_results = results
 
             output = self._format_results(results)
