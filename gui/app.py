@@ -410,6 +410,38 @@ class StatChatApp:
         except Exception as e:
             messagebox.showerror("Load Error", str(e))
 
+
+    def _build_clean_norm_opts(self):
+        """Read current UI checkbox/radio state into opts dicts."""
+        try:
+            nm = float(self.norm_mean_var.get())
+            ns = float(self.norm_std_var.get())
+        except ValueError:
+            nm, ns = 0.0, 1.0
+        clean_opts = {
+            "drop_duplicates": self.v_drop_dup.get(),
+            "drop_nulls":      self.v_drop_nulls.get(),
+            "fill_nulls":      self.fill_strategy.get() if self.v_fill_nulls.get() else None,
+        }
+        norm_opts = {
+            "normalize": None if self.norm_method.get() == "none" else self.norm_method.get(),
+            "norm_mean": nm,
+            "norm_std":  ns,
+        }
+        return clean_opts, norm_opts
+
+    def _apply_cleaning_and_norm(self, base_df):
+        """Apply current cleaning+norm settings to base_df. Updates self._clean_log / _norm_log.
+        Returns the processed DataFrame."""
+        clean_opts, norm_opts = self._build_clean_norm_opts()
+        df, clean_log = apply_cleaning(base_df.copy(), clean_opts)
+        df, norm_log  = apply_normalization(df, norm_opts)
+        self._clean_log = clean_log
+        self._norm_log  = norm_log
+        for msg in clean_log: self._log(f"  [clean] {msg}")
+        for msg in norm_log:  self._log(f"  [norm]  {msg}")
+        return df
+
     def _run_analysis(self):
         if self.original_df is None:
             messagebox.showwarning("No Data", "Please load a file first.")
@@ -418,35 +450,9 @@ class StatChatApp:
         def worker():
             self._log("── Running preprocessing & analysis…")
 
-            # Cleaning
-            clean_opts = {
-                "drop_duplicates": self.v_drop_dup.get(),
-                "drop_nulls":      self.v_drop_nulls.get(),
-                "fill_nulls":      self.fill_strategy.get() if self.v_fill_nulls.get() else None,
-            }
             # Use working_df as base if adjustments have been made, else original
-            base = (self.working_df if self.working_df is not None
-                    else self.original_df).copy()
-            df, clean_log = apply_cleaning(base, clean_opts)
-            for msg in clean_log:
-                self._log(f"  [clean] {msg}")
-            self._clean_log = clean_log
-
-            # Normalization
-            try:
-                nm = float(self.norm_mean_var.get())
-                ns = float(self.norm_std_var.get())
-            except ValueError:
-                nm, ns = 0.0, 1.0
-            norm_opts = {
-                "normalize": None if self.norm_method.get() == "none" else self.norm_method.get(),
-                "norm_mean": nm,
-                "norm_std":  ns,
-            }
-            df, norm_log = apply_normalization(df, norm_opts)
-            for msg in norm_log:
-                self._log(f"  [norm] {msg}")
-            self._norm_log = norm_log
+            base = self.working_df if self.working_df is not None else self.original_df
+            df = self._apply_cleaning_and_norm(base)
 
             self.cleaned_df = df
             self.root.after(0, lambda: self._populate_table(df))
@@ -552,8 +558,12 @@ class StatChatApp:
             self._log("── Generating PDF report…")
             try:
                 from core.reporter import generate_report
-                _cur = self._current_df()
-                display_df = _cur if _cur is not None else self.original_df
+                # Always apply current cleaning/norm settings before generating
+                # the report so that "Rows removed" reflects the actual UI state,
+                # even if the user hasn't clicked Run Analysis first.
+                base = self.working_df if self.working_df is not None else self.original_df
+                display_df = self._apply_cleaning_and_norm(base)
+                self.cleaned_df = display_df
                 out = generate_report(
                     filepath=path,
                     original_df=self.original_df,
