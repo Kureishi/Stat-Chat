@@ -552,7 +552,8 @@ class StatChatApp:
             self._log("── Generating PDF report…")
             try:
                 from core.reporter import generate_report
-                display_df = self._current_df() or self.original_df
+                _cur = self._current_df()
+                display_df = _cur if _cur is not None else self.original_df
                 out = generate_report(
                     filepath=path,
                     original_df=self.original_df,
