@@ -14,7 +14,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from core.loader import load_file, save_file, get_file_info
 from core.cleaner import apply_cleaning, apply_normalization
 from core.analyzer import run_analysis
-from core.reporter import generate_report
 from core.llm_backend import get_config, set_config, LLMConfig
 from gui.chat_panel import AdjustPanel
 
@@ -552,6 +551,7 @@ class StatChatApp:
         def worker():
             self._log("── Generating PDF report…")
             try:
+                from core.reporter import generate_report
                 display_df = self._current_df() or self.original_df
                 out = generate_report(
                     filepath=path,
