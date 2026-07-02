@@ -14,7 +14,7 @@ class CLIRunner:
 
     def run(self):
         args = self.args
-        print(f"\n── DataLyzer CLI ──────────────────────────────────")
+        print(f"\n── Stat Chat CLI ──────────────────────────────────")
         print(f"Loading: {args.input}")
 
         try:

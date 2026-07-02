@@ -224,6 +224,7 @@ def generate_report(
     clean_log: list,
     norm_log: list,
     source_file: str = "",
+    adjustment_history: Optional[list] = None,
 ) -> str:
     """Generate a PDF report and save to filepath. Returns the output path."""
     doc = SimpleDocTemplate(
@@ -237,25 +238,28 @@ def generate_report(
     S = _styles()
     story = []
     now = datetime.datetime.now().strftime("%B %d, %Y  %H:%M")
+    adj_history = adjustment_history or []
+    n_versions  = len(adj_history)
 
     # ── Cover block ───────────────────────────────────────────────────────────
-    cover_data = [[
-        Paragraph("<b>DataLyzer</b>", S["title"]),
-    ]]
+    cover_data = [[Paragraph("<b>Stat Chat</b>", S["title"])]]
     cover_table = Table(cover_data, colWidths=[6.5 * inch])
     cover_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), BG_HEADER),
-        ("TOPPADDING", (0, 0), (-1, -1), 22),
+        ("BACKGROUND",    (0, 0), (-1, -1), BG_HEADER),
+        ("TOPPADDING",    (0, 0), (-1, -1), 22),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 18),
-        ("LEFTPADDING", (0, 0), (-1, -1), 20),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 20),
-        ("ROUNDEDCORNERS", [6], ),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 20),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 20),
     ]))
     story.append(cover_table)
     story.append(Paragraph("Statistical Analysis Report", S["subtitle"]))
     story.append(Paragraph(f"Generated: {now}", S["small"]))
     if source_file:
         story.append(Paragraph(f"Source: {Path(source_file).name}", S["small"]))
+    if n_versions > 1:
+        story.append(Paragraph(
+            f"Dataset versions in this session: {n_versions}  "
+            f"(v0 = original → v{n_versions-1} = current)", S["small"]))
     story.append(Spacer(1, 16))
 
     # ── Dataset overview ──────────────────────────────────────────────────────
@@ -263,7 +267,7 @@ def generate_report(
     _section_rule(story, S)
     num_cols = list(cleaned_df.select_dtypes(include="number").columns)
     cat_cols = list(cleaned_df.select_dtypes(exclude="number").columns)
-    missing = int(cleaned_df.isnull().sum().sum())
+    missing  = int(cleaned_df.isnull().sum().sum())
     kv = [
         ("Original rows",    str(len(original_df))),
         ("Processed rows",   str(len(cleaned_df))),
@@ -275,8 +279,6 @@ def generate_report(
     ]
     story.append(_kv_table(kv))
     story.append(Spacer(1, 10))
-
-    # Column list
     if num_cols:
         story.append(Paragraph("Numeric columns: " + ", ".join(num_cols), S["small"]))
     if cat_cols:
@@ -291,8 +293,82 @@ def generate_report(
             story.append(Paragraph(f"• {msg}", S["body"]))
         story.append(Spacer(1, 10))
 
+    # ── Adjustment history ────────────────────────────────────────────────────
+    if n_versions > 1:
+        story.append(Paragraph("3. Iterative Adjustment History", S["h1"]))
+        _section_rule(story, S)
+        story.append(Paragraph(
+            "The dataset was modified across the following versions during this session. "
+            "Statistics in later sections reflect the most recent version.",
+            S["body"]))
+        story.append(Spacer(1, 8))
+
+        hdr = ["Version", "Time", "Description", "Rows", "Cols"]
+        rows = [hdr]
+        for entry in adj_history:
+            df_v = entry.get("df")
+            rows.append([
+                f"v{entry.get('version', '?')}",
+                entry.get("timestamp", ""),
+                entry.get("description", "")[:55],
+                str(len(df_v)) if df_v is not None else "—",
+                str(len(df_v.columns)) if df_v is not None else "—",
+            ])
+        t = Table(rows, colWidths=[0.55*inch, 0.75*inch, 3.6*inch, 0.55*inch, 0.55*inch])
+        t.setStyle(TableStyle([
+            ("BACKGROUND",    (0, 0), (-1, 0),  BG_HEADER),
+            ("TEXTCOLOR",     (0, 0), (-1, 0),  colors.white),
+            ("FONTNAME",      (0, 0), (-1, 0),  "Helvetica-Bold"),
+            ("FONTSIZE",      (0, 0), (-1, -1), 8),
+            ("ROWBACKGROUNDS",(0, 1), (-1, -1), [colors.white, BG_LIGHT]),
+            ("GRID",          (0, 0), (-1, -1), 0.4, GREY_BORDER),
+            ("TOPPADDING",    (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ("LEFTPADDING",   (0, 0), (-1, -1), 6),
+        ]))
+        story.append(t)
+
+        # Mean-evolution table for up to 4 shared numeric columns
+        numeric_shared = []
+        if adj_history:
+            first_num = set(adj_history[0]["df"].select_dtypes(include="number").columns)
+            curr_num  = set(cleaned_df.select_dtypes(include="number").columns)
+            numeric_shared = list(first_num & curr_num)[:4]
+
+        if len(adj_history) >= 2 and numeric_shared:
+            story.append(Spacer(1, 10))
+            story.append(Paragraph("Mean value evolution across versions:", S["small"]))
+            story.append(Spacer(1, 4))
+            evo_hdr  = ["Version"] + numeric_shared
+            evo_rows = [evo_hdr]
+            for entry in adj_history:
+                df_v = entry.get("df")
+                if df_v is None:
+                    continue
+                row = [f"v{entry['version']}"]
+                for col in numeric_shared:
+                    row.append(f"{df_v[col].mean():.4g}" if col in df_v.columns else "—")
+                evo_rows.append(row)
+            cw = [0.65*inch] + [1.45*inch] * len(numeric_shared)
+            evo_t = Table(evo_rows, colWidths=cw)
+            evo_t.setStyle(TableStyle([
+                ("BACKGROUND",    (0, 0), (-1, 0),  BG_HEADER),
+                ("TEXTCOLOR",     (0, 0), (-1, 0),  colors.white),
+                ("FONTNAME",      (0, 0), (-1, 0),  "Helvetica-Bold"),
+                ("FONTSIZE",      (0, 0), (-1, -1), 8),
+                ("ROWBACKGROUNDS",(0, 1), (-1, -1), [colors.white, BG_LIGHT]),
+                ("GRID",          (0, 0), (-1, -1), 0.4, GREY_BORDER),
+                ("ALIGN",         (1, 0), (-1, -1), "CENTER"),
+                ("TOPPADDING",    (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ("LEFTPADDING",   (0, 0), (-1, -1), 6),
+            ]))
+            story.append(evo_t)
+        story.append(Spacer(1, 12))
+
     # ── Data preview ──────────────────────────────────────────────────────────
-    story.append(Paragraph("3. Data Preview (first 10 rows)", S["h1"]))
+    sec_base = 4 if n_versions > 1 else 3
+    story.append(Paragraph(f"{sec_base}. Data Preview (first 10 rows — current version)", S["h1"]))
     _section_rule(story, S)
     story.append(_df_table(cleaned_df, max_rows=10))
     story.append(Spacer(1, 12))
@@ -301,13 +377,14 @@ def generate_report(
     if num_cols:
         buf = _dist_plots_image(cleaned_df)
         if buf:
-            story.append(Paragraph("4. Feature Distributions", S["h1"]))
+            sec_base += 1
+            story.append(Paragraph(f"{sec_base}. Feature Distributions", S["h1"]))
             _section_rule(story, S)
             img = Image(buf, width=6.5 * inch, height=4 * inch)
             story.append(img)
             story.append(Spacer(1, 12))
 
-    sec = 5  # running section counter
+    sec = sec_base + 1  # running section counter
 
     # ── Central tendency ──────────────────────────────────────────────────────
     if "central_tendency" in analysis_results:
@@ -520,7 +597,7 @@ def generate_report(
     story.append(Spacer(1, 20))
     story.append(HRFlowable(width="100%", thickness=0.5, color=GREY_BORDER))
     story.append(Paragraph(
-        "Report generated by DataLyzer · All statistics computed on cleaned/normalized data.",
+        "Report generated by Stat Chat · All statistics computed on cleaned/normalized data.",
         S["small"]
     ))
 

@@ -1,4 +1,4 @@
-# DataLyzer
+# Stat Chat
 
 **Data Cleaning · Normalization · Statistical Analysis · PDF Reports**
 
@@ -109,7 +109,7 @@ python main.py --cli \
 ## Project Structure
 
 ```
-datalyzer/
+statchat/
 ├── main.py               Entry point (GUI or CLI)
 ├── requirements.txt
 ├── core/

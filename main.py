@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DataLyzer - A Python Data Analysis & Cleaning Tool
+Stat Chat - A Python Data Analysis & Cleaning Tool
 Supports both GUI (Tkinter) and CLI modes.
 """
 
@@ -13,9 +13,9 @@ def run_gui():
     """Launch the Tkinter GUI application."""
     try:
         import tkinter as tk
-        from gui.app import DataLyzerApp
+        from gui.app import StatChatApp
         root = tk.Tk()
-        app = DataLyzerApp(root)
+        app = StatChatApp(root)
         root.mainloop()
     except ImportError as e:
         print(f"[ERROR] Could not launch GUI: {e}")
@@ -32,7 +32,7 @@ def run_cli(args):
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="DataLyzer",
+        prog="Stat Chat",
         description="Data Cleaning, Normalization & Statistical Analysis Tool",
         formatter_class=argparse.RawTextHelpFormatter
     )
