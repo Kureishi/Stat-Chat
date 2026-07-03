@@ -88,8 +88,16 @@ class StatChatApp:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title("Stat Chat — Data Analysis Tool")
-        self.root.geometry("1200x820")
-        self.root.minsize(1000, 680)
+        # Open maximized so left panel is always fully visible.
+        # Fallback to a large fixed size if zoomed state isn't supported.
+        try:
+            self.root.state("zoomed")   # Windows / some Linux WMs
+        except tk.TclError:
+            try:
+                self.root.attributes("-zoomed", True)  # Linux (some WMs)
+            except tk.TclError:
+                self.root.geometry("1400x900")          # macOS / fallback
+        self.root.minsize(1060, 720)
         self.root.configure(bg=C["bg"])
 
         # State
@@ -151,8 +159,31 @@ class StatChatApp:
         canvas.configure(yscrollcommand=scroll.set)
         canvas.pack(side="left", fill="both", expand=True)
         scroll.pack(side="right", fill="y")
-        canvas.bind_all("<MouseWheel>",
-            lambda e: canvas.yview_scroll(int(-1*(e.delta/120)), "units"))
+
+        # Bind mousewheel only while the pointer is inside the left panel,
+        # so it doesn't hijack scrolling in the right-side notebook tabs.
+        def _on_mousewheel(e):
+            canvas.yview_scroll(int(-1 * (e.delta / 120)), "units")
+
+        def _bind_wheel(e):
+            canvas.bind_all("<MouseWheel>", _on_mousewheel)
+            # Linux two-button scroll
+            canvas.bind_all("<Button-4>", lambda e: canvas.yview_scroll(-1, "units"))
+            canvas.bind_all("<Button-5>", lambda e: canvas.yview_scroll( 1, "units"))
+
+        def _unbind_wheel(e):
+            canvas.unbind_all("<MouseWheel>")
+            canvas.unbind_all("<Button-4>")
+            canvas.unbind_all("<Button-5>")
+
+        canvas.bind("<Enter>", _bind_wheel)
+        canvas.bind("<Leave>", _unbind_wheel)
+        self.left_inner.bind("<Enter>", _bind_wheel)
+        self.left_inner.bind("<Leave>", _unbind_wheel)
+
+        # Also make the canvas width track the frame width so content doesn't clip
+        frame.bind("<Configure>",
+            lambda e: canvas.configure(width=e.width - scroll.winfo_reqwidth()))
 
         p   = self.left_inner
         pad = {"padx": 12, "pady": 4}
