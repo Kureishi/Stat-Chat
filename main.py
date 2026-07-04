@@ -141,6 +141,28 @@ def main():
     ag.add_argument("--percentiles",  action="store_true", help="P5–P95 percentiles")
     ag.add_argument("--all-metrics",  action="store_true", help="Run all applicable metrics")
 
+    # Adjustment
+    adj = parser.add_argument_group("Adjustment Options (requires LLM backend)")
+    adj.add_argument("--adjust", action="append", metavar="INSTRUCTION",
+                     help="Natural-language adjustment (repeatable). "
+                          "e.g. --adjust 'Add 1000 to spend' --adjust 'Multiply income by 1.1'")
+    adj.add_argument("--adjust-image", type=str, metavar="IMAGE_PATH",
+                     help="Path to an annotated report image (PNG/JPG). "
+                          "A vision model will extract adjustment instructions from it.")
+
+    # Backend
+    bg = parser.add_argument_group("LLM Backend Options")
+    bg.add_argument("--backend", choices=["claude", "lmstudio", "lmstudio_vision"],
+                    default="claude",
+                    help="LLM provider for adjustments (default: claude)")
+    bg.add_argument("--lmstudio-url", type=str, default="http://localhost:1234",
+                    metavar="URL",
+                    help="LM Studio server URL (default: http://localhost:1234)")
+    bg.add_argument("--lmstudio-model", type=str, default="", metavar="MODEL_ID",
+                    help="LM Studio text model ID (leave blank to use loaded model)")
+    bg.add_argument("--lmstudio-vision-model", type=str, default="", metavar="MODEL_ID",
+                    help="LM Studio vision model ID for --adjust-image")
+
     args = parser.parse_args()
 
     if args.cli:
