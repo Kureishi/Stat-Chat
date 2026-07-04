@@ -99,6 +99,23 @@ class StatChatApp:
                 self.root.geometry("1400x900")          # macOS / fallback
         self.root.minsize(1060, 720)
         self.root.configure(bg=C["bg"])
+        # Set window icon — mirrors the PySide6 pattern of resolving the .ico
+        # path relative to the script file using abspath(__file__).
+        # We defer the call with after(0) so the window is fully realized
+        # before iconbitmap is applied — this fixes title bar icon on Windows.
+        def _set_icon():
+            try:
+                import os as _os
+                _ico = _os.path.join(
+                    _os.path.dirname(_os.path.abspath(__file__)),
+                    "..", "icon.ico"
+                )
+                _ico = _os.path.normpath(_ico)
+                if _os.path.exists(_ico):
+                    self.root.iconbitmap(_ico)
+            except Exception:
+                pass
+        self.root.after(0, _set_icon)
 
         # State
         self.original_df: pd.DataFrame | None = None

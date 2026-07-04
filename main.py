@@ -19,6 +19,7 @@ REQUIRED = {
     "matplotlib":  "matplotlib",
     "openpyxl":    "openpyxl",
     "requests":    "requests",
+    "PIL":         "Pillow",     # used for app icon rendering
 }
 
 def check_dependencies():
