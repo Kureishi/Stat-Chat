@@ -14,7 +14,9 @@ pip install statchat-app
 
 > Tkinter ships with standard Python on Windows/macOS. On Linux: `sudo apt install python3-tk`
 
-> There is also a standalone EXE file (~2.13 GB) available at: https://www.mediafire.com/file/kec99bnwkjfwob0/statchat.exe/file for those without Python installed. (Windows only)
+> A standalone EXE file (~2.13 GB) is available at: https://www.mediafire.com/file/kec99bnwkjfwob0/statchat.exe/file for those without Python installed. (Windows only)
+
+> A Windows Setup Wizard EXE file (~1.95 GB) is available at: https://www.mediafire.com/file/hrrewqdb45uwq55/StatChat_Setup_1.0.2.exe/file
 
 ---
 
