@@ -26,10 +26,9 @@ statchat
 
 > [!NOTE]
 > Run CLI from Terminal after install using Windows Setup Wizard (make sure to add to PATH): 
-```bash
-statchat-cli
-```
-
+> ```bash
+>     statchat-cli
+> ```
 
 > [!IMPORTANT]  
 > As a reminder, CLI functionality isn't available for the standalone EXE files. 
