@@ -18,6 +18,9 @@ pip install statchat-app
 
 > A Windows Setup Wizard EXE file (~1.95 GB) is available at: https://www.mediafire.com/file/hrrewqdb45uwq55/StatChat_Setup_1.0.2.exe/file
 
+> [!IMPORTANT]  
+> As a reminder, CLI functionality isn't available for the standalone or (currently) Windows Setup Wizard EXE files. 
+
 ---
 
 ## Launch
