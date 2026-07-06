@@ -20,14 +20,14 @@ pip install statchat-app
 
 > [!NOTE]
 > Run GUI from Terminal after install using Windows Setup Wizard (make sure to add to PATH): 
-```bash
-statchat
-```
+> ```bash
+> statchat
+> ```
 
 > [!NOTE]
 > Run CLI from Terminal after install using Windows Setup Wizard (make sure to add to PATH): 
 > ```bash
->     statchat-cli
+> statchat-cli
 > ```
 
 > [!IMPORTANT]  
