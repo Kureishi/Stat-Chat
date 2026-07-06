@@ -22,7 +22,7 @@ from typing import Optional
 import pandas as pd
 import numpy as np
 
-from core.llm_backend import chat_json, get_config, LLMConfig
+from statchat.core.llm_backend import chat_json, get_config, LLMConfig
 
 
 # ── System prompt ─────────────────────────────────────────────────────────────

@@ -3,10 +3,10 @@
 import sys
 import base64
 from pathlib import Path
-from core.loader import load_file, save_file, get_file_info
-from core.cleaner import apply_cleaning, apply_normalization
-from core.analyzer import run_analysis
-from core.reporter import generate_report
+from statchat.core.loader import load_file, save_file, get_file_info
+from statchat.core.cleaner import apply_cleaning, apply_normalization
+from statchat.core.analyzer import run_analysis
+from statchat.core.reporter import generate_report
 
 
 class CLIRunner:
@@ -30,7 +30,7 @@ class CLIRunner:
 
         # ── Configure LLM backend ─────────────────────────────────────────────
         if args.adjust or args.adjust_image:
-            from core.llm_backend import LLMConfig, set_config
+            from statchat.core.llm_backend import LLMConfig, set_config
             provider = getattr(args, "backend", "claude")
             cfg = LLMConfig(
                 provider=provider,
@@ -67,7 +67,7 @@ class CLIRunner:
         working_df  = cleaned_df.copy()
 
         if args.adjust:
-            from core.adjuster import apply_instructions
+            from statchat.core.adjuster import apply_instructions
             import datetime
             print(f"\n── Applying Text Adjustments ──────────────────────")
             for instruction in args.adjust:
@@ -89,7 +89,7 @@ class CLIRunner:
 
         # ── Image annotation ──────────────────────────────────────────────────
         if args.adjust_image:
-            from core.adjuster import apply_instructions_from_image
+            from statchat.core.adjuster import apply_instructions_from_image
             import datetime
             print(f"\n── Parsing Annotated Image ────────────────────────")
             img_path = Path(args.adjust_image)

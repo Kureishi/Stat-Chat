@@ -10,12 +10,11 @@ from pathlib import Path
 import pandas as pd
 import sys
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from core.loader import load_file, save_file, get_file_info
-from core.cleaner import apply_cleaning, apply_normalization
-from core.analyzer import run_analysis
-from core.llm_backend import get_config, set_config, LLMConfig
-from gui.chat_panel import AdjustPanel
+from statchat.core.loader import load_file, save_file, get_file_info
+from statchat.core.cleaner import apply_cleaning, apply_normalization
+from statchat.core.analyzer import run_analysis
+from statchat.core.llm_backend import get_config, set_config, LLMConfig
+from statchat.gui.chat_panel import AdjustPanel
 
 # ── Colour tokens ──────────────────────────────────────────────────────────────
 C = {
@@ -605,7 +604,7 @@ class StatChatApp:
         def worker():
             self._log("── Generating PDF report…")
             try:
-                from core.reporter import generate_report
+                from statchat.core.reporter import generate_report
                 # Always apply current cleaning/norm settings before generating
                 # the report so that "Rows removed" reflects the actual UI state,
                 # even if the user hasn't clicked Run Analysis first.
@@ -669,7 +668,7 @@ class StatChatApp:
             self._left_backend_var.set(txt)
 
     def _open_settings(self):
-        from gui.settings_dialog import SettingsDialog
+        from statchat.gui.settings_dialog import SettingsDialog
         def on_save(cfg):
             self._update_backend_label()
             self._log(f"[settings] Backend set to: {cfg.provider}")

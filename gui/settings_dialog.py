@@ -211,7 +211,7 @@ class SettingsDialog(tk.Toplevel):
                 pass
 
     def _fetch_models(self):
-        from core.llm_backend import list_lmstudio_models
+        from statchat.core.llm_backend import list_lmstudio_models
         url = self._base_url_var.get().strip()
         self._model_list_var.set("Fetching…")
 
@@ -233,7 +233,7 @@ class SettingsDialog(tk.Toplevel):
         cfg = self._build_config()
 
         def worker():
-            from core.llm_backend import test_connection
+            from statchat.core.llm_backend import test_connection
             ok, msg = test_connection(cfg)
             color = C["success"] if ok else C["danger"]
             prefix = "✓  " if ok else "✗  "
@@ -243,7 +243,7 @@ class SettingsDialog(tk.Toplevel):
         threading.Thread(target=worker, daemon=True).start()
 
     def _build_config(self):
-        from core.llm_backend import LLMConfig
+        from statchat.core.llm_backend import LLMConfig
         try:
             timeout = int(self._timeout_var.get())
         except ValueError:
@@ -263,7 +263,7 @@ class SettingsDialog(tk.Toplevel):
 
     def _save(self):
         cfg = self._build_config()
-        from core.llm_backend import set_config
+        from statchat.core.llm_backend import set_config
         set_config(cfg)
         self._on_save(cfg)
         self.destroy()

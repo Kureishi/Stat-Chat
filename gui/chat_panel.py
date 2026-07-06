@@ -404,7 +404,7 @@ class AdjustPanel(tk.Frame):
 
         def worker():
             try:
-                from core.adjuster import apply_instructions
+                from statchat.core.adjuster import apply_instructions
                 new_df, descriptions, ops = apply_instructions(df, text)
 
                 # Remove the "thinking" message by rebuilding — simplest approach
@@ -424,7 +424,7 @@ class AdjustPanel(tk.Frame):
 
     def _send_image(self):
         """Let the user pick an annotated image/screenshot and send it to the vision model."""
-        from core.llm_backend import get_config
+        from statchat.core.llm_backend import get_config
         cfg = get_config()
 
         df = self._get_df()
@@ -466,7 +466,7 @@ class AdjustPanel(tk.Frame):
 
         def worker():
             try:
-                from core.adjuster import apply_instructions_from_image
+                from statchat.core.adjuster import apply_instructions_from_image
                 new_df, descriptions, ops = apply_instructions_from_image(df, image_b64)
                 self.after(0, lambda: self._replace_last_thinking(
                     original_df=df,
@@ -541,7 +541,7 @@ class AdjustPanel(tk.Frame):
         )
         if not path:
             return
-        from core.loader import save_file
+        from statchat.core.loader import save_file
         fmt = Path(path).suffix.lstrip(".") or "csv"
         try:
             out = save_file(df, path, fmt=fmt)

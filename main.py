@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """
-Stat Chat - A Python Data Analysis & Cleaning Tool
-Supports both GUI (Tkinter) and CLI modes.
+Stat Chat — Data Cleaning, Normalization, Statistical Analysis & Iterative Adjustment
+
+Entry points:
+  GUI:  statchat
+  CLI:  statchat --cli --input data.csv [options]
+  Also: python -m statchat
 """
 
 import argparse
 import sys
-from pathlib import Path
+
 
 # ── Dependency check ───────────────────────────────────────────────────────────
 
@@ -19,8 +23,9 @@ REQUIRED = {
     "matplotlib":  "matplotlib",
     "openpyxl":    "openpyxl",
     "requests":    "requests",
-    "PIL":         "Pillow",     # used for app icon rendering
+    "PIL":         "Pillow",
 }
+
 
 def check_dependencies():
     missing = []
@@ -42,7 +47,6 @@ def prompt_install(missing):
         print(f"    • {p}")
     print(f"\n  Install them by running:\n\n    {cmd}\n")
 
-    # If tkinter is available, show a GUI dialog too
     try:
         import tkinter as tk
         from tkinter import messagebox
@@ -50,7 +54,7 @@ def prompt_install(missing):
         root.withdraw()
         answer = messagebox.askyesno(
             "Stat Chat — Missing packages",
-            f"The following required packages are missing:\n\n"
+            "The following required packages are missing:\n\n"
             + "\n".join(f"  • {p}" for p in missing)
             + f"\n\nInstall them now?\n\n{cmd}",
         )
@@ -59,10 +63,8 @@ def prompt_install(missing):
             import subprocess
             subprocess.check_call([sys.executable, "-m", "pip", "install"] + missing)
             print("\n  ✓  Installation complete. Relaunch Stat Chat.")
-        else:
-            print("\n  Install them manually, then relaunch.")
     except Exception:
-        pass   # headless — text output is enough
+        pass
 
     sys.exit(1)
 
@@ -70,100 +72,93 @@ def prompt_install(missing):
 # ── Launchers ──────────────────────────────────────────────────────────────────
 
 def run_gui():
-    """Launch the Tkinter GUI application."""
     try:
         import tkinter as tk
     except ImportError:
         print("[ERROR] Tkinter is not available.")
-        print("  On Linux: sudo apt install python3-tk")
-        print("  On macOS/Windows: reinstall Python from python.org (Tkinter is bundled).")
+        print("  Linux:        sudo apt install python3-tk")
+        print("  macOS/Windows: reinstall Python from python.org")
         sys.exit(1)
 
-    from gui.app import StatChatApp
+    from statchat.gui.app import StatChatApp
     root = tk.Tk()
-    app = StatChatApp(root)
+    StatChatApp(root)
     root.mainloop()
 
 
 def run_cli(args):
-    """Run the application in CLI mode."""
-    from cli.runner import CLIRunner
-    runner = CLIRunner(args)
-    runner.run()
+    from statchat.cli.runner import CLIRunner
+    CLIRunner(args).run()
 
 
-# ── Argument parser ────────────────────────────────────────────────────────────
+# ── CLI argument parser ────────────────────────────────────────────────────────
 
-def main():
-    # Always check deps first (fast — just import probes, no network)
-    missing = check_dependencies()
-    if missing:
-        prompt_install(missing)
-
-    sys.path.insert(0, str(Path(__file__).parent))
-
+def build_parser():
     parser = argparse.ArgumentParser(
         prog="statchat",
-        description="Stat Chat — Data Cleaning, Normalization & Statistical Analysis Tool",
-        formatter_class=argparse.RawTextHelpFormatter
+        description="Stat Chat — Data Cleaning, Normalization & Statistical Analysis",
+        formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument("--cli", action="store_true", help="Run in CLI mode (no GUI)")
-    parser.add_argument("--input",  "-i", type=str, help="Path to input CSV or Excel file")
-    parser.add_argument("--output", "-o", type=str, help="Path to save cleaned data")
+    parser.add_argument("--input",  "-i", type=str, help="Input CSV or Excel file")
+    parser.add_argument("--output", "-o", type=str, help="Path to save processed data")
     parser.add_argument("--output-format", choices=["csv", "xlsx", "json"], default="csv",
-                        help="Format for saved data (default: csv)")
+                        help="Output format (default: csv)")
     parser.add_argument("--report", "-r", type=str, help="Path to save PDF report")
 
-    # Cleaning
     cg = parser.add_argument_group("Cleaning Options")
     cg.add_argument("--drop-duplicates", action="store_true", help="Remove duplicate rows")
     cg.add_argument("--drop-nulls",      action="store_true", help="Drop rows with null values")
-    cg.add_argument("--fill-nulls", choices=["mean","median","mode","zero"],
+    cg.add_argument("--fill-nulls", choices=["mean", "median", "mode", "zero"],
                     help="Fill null values with strategy")
 
-    # Normalization
     ng = parser.add_argument_group("Normalization Options")
-    ng.add_argument("--normalize", choices=["zscore","minmax","robust"],
-                    help="Normalization method to apply")
+    ng.add_argument("--normalize", choices=["zscore", "minmax", "robust"],
+                    help="Normalization method")
     ng.add_argument("--norm-mean", type=float, default=0.0,
-                    help="Target mean for z-score normalization (default: 0.0)")
+                    help="Z-score target mean (default: 0.0)")
     ng.add_argument("--norm-std",  type=float, default=1.0,
-                    help="Target std for z-score normalization (default: 1.0)")
+                    help="Z-score target std  (default: 1.0)")
 
-    # Analysis
     ag = parser.add_argument_group("Analysis Metrics")
     ag.add_argument("--central-tendency", action="store_true", help="Mean, median, mode")
     ag.add_argument("--dispersion",       action="store_true", help="Std dev, variance, IQR, range")
     ag.add_argument("--shape",            action="store_true", help="Skewness & kurtosis")
     ag.add_argument("--correlation",      action="store_true", help="Correlation matrix")
+    ag.add_argument("--percentiles",      action="store_true", help="P5–P95 percentiles")
     ag.add_argument("--roc-auc", type=str, metavar="TARGET_COL",
                     help="ROC-AUC vs a binary target column")
-    ag.add_argument("--percentiles",  action="store_true", help="P5–P95 percentiles")
-    ag.add_argument("--all-metrics",  action="store_true", help="Run all applicable metrics")
+    ag.add_argument("--all-metrics", action="store_true", help="Run all metrics")
 
-    # Adjustment
     adj = parser.add_argument_group("Adjustment Options (requires LLM backend)")
     adj.add_argument("--adjust", action="append", metavar="INSTRUCTION",
-                     help="Natural-language adjustment (repeatable). "
-                          "e.g. --adjust 'Add 1000 to spend' --adjust 'Multiply income by 1.1'")
+                     help="Natural-language adjustment (repeatable).\n"
+                          "e.g. --adjust 'Add 1000 to spend'")
     adj.add_argument("--adjust-image", type=str, metavar="IMAGE_PATH",
-                     help="Path to an annotated report image (PNG/JPG). "
-                          "A vision model will extract adjustment instructions from it.")
+                     help="Annotated report image — vision model extracts instructions")
 
-    # Backend
     bg = parser.add_argument_group("LLM Backend Options")
     bg.add_argument("--backend", choices=["claude", "lmstudio", "lmstudio_vision"],
-                    default="claude",
-                    help="LLM provider for adjustments (default: claude)")
-    bg.add_argument("--lmstudio-url", type=str, default="http://localhost:1234",
-                    metavar="URL",
-                    help="LM Studio server URL (default: http://localhost:1234)")
-    bg.add_argument("--lmstudio-model", type=str, default="", metavar="MODEL_ID",
-                    help="LM Studio text model ID (leave blank to use loaded model)")
+                    default="claude", help="LLM provider (default: claude)")
+    bg.add_argument("--lmstudio-url",          type=str, default="http://localhost:1234",
+                    metavar="URL",      help="LM Studio server URL")
+    bg.add_argument("--lmstudio-model",        type=str, default="", metavar="MODEL_ID",
+                    help="LM Studio text model ID")
     bg.add_argument("--lmstudio-vision-model", type=str, default="", metavar="MODEL_ID",
-                    help="LM Studio vision model ID for --adjust-image")
+                    help="LM Studio vision model ID")
 
-    args = parser.parse_args()
+    return parser
+
+
+# ── Main entry point ───────────────────────────────────────────────────────────
+
+def main():
+    missing = check_dependencies()
+    if missing:
+        prompt_install(missing)
+
+    parser = build_parser()
+    args   = parser.parse_args()
 
     if args.cli:
         if not args.input:
@@ -171,6 +166,20 @@ def main():
         run_cli(args)
     else:
         run_gui()
+
+
+def cli_main():
+    """
+    Entry point for the statchat-cli command.
+    Automatically injects --cli so that:
+        statchat-cli --input data.csv ...
+    is identical to:
+        statchat --cli --input data.csv ...
+    Users never need to type --cli when using statchat-cli.
+    """
+    if "--cli" not in sys.argv:
+        sys.argv.insert(1, "--cli")
+    main()
 
 
 if __name__ == "__main__":
