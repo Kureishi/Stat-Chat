@@ -39,8 +39,11 @@ pip install statchat-app
 
 ```bash
 statchat              # GUI
-statchat --cli --help # CLI
+statchat-cli --help   # CLI (prints the function of each arg)
 ```
+
+> [!NOTE]
+> 'statchat-cli' is the alias of 'statchat --cli' formatted for convenience and to ease confusion
 
 ---
 
